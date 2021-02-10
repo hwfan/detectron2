@@ -1,4 +1,4 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+# Copyright (c) Facebook, Inc. and its affiliates.
 import unittest
 from typing import List
 import torch
@@ -9,7 +9,6 @@ from detectron2.utils.env import TORCH_VERSION
 
 
 class TestMatcher(unittest.TestCase):
-    # need https://github.com/pytorch/pytorch/pull/38378
     @unittest.skipIf(TORCH_VERSION < (1, 6), "Insufficient pytorch version")
     def test_scriptability(self):
         cfg = get_cfg()

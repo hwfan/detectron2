@@ -1,4 +1,4 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+# Copyright (c) Facebook, Inc. and its affiliates.
 import contextlib
 import io
 import logging
@@ -6,11 +6,13 @@ import os
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional
-from fvcore.common.file_io import PathManager
 from fvcore.common.timer import Timer
 
 from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.structures import BoxMode
+from detectron2.utils.file_io import PathManager
+
+from densepose.data.meshes.catalog import MeshCatalog
 
 from ..utils import maybe_prepend_base_path
 
@@ -49,6 +51,26 @@ DATASETS = [
         annotations_fpath="coco/annotations/densepose_valminusminival2014.json",
     ),
     CocoDatasetInfo(
+        name="densepose_coco_2014_train_cse",
+        images_root="coco/train2014",
+        annotations_fpath="coco_cse/densepose_train2014_cse.json",
+    ),
+    CocoDatasetInfo(
+        name="densepose_coco_2014_minival_cse",
+        images_root="coco/val2014",
+        annotations_fpath="coco_cse/densepose_minival2014_cse.json",
+    ),
+    CocoDatasetInfo(
+        name="densepose_coco_2014_minival_100_cse",
+        images_root="coco/val2014",
+        annotations_fpath="coco_cse/densepose_minival2014_100_cse.json",
+    ),
+    CocoDatasetInfo(
+        name="densepose_coco_2014_valminusminival_cse",
+        images_root="coco/val2014",
+        annotations_fpath="coco_cse/densepose_valminusminival2014_cse.json",
+    ),
+    CocoDatasetInfo(
         name="densepose_chimps",
         images_root="densepose_evolution/densepose_chimps",
         annotations_fpath="densepose_evolution/annotations/densepose_chimps_densepose.json",
@@ -62,6 +84,16 @@ DATASETS = [
         name="posetrack2017_val",
         images_root="posetrack2017/posetrack_data_2017",
         annotations_fpath="posetrack2017/densepose_posetrack_val2017.json",
+    ),
+    CocoDatasetInfo(
+        name="lvis_v05_train",
+        images_root="coco/train2017",
+        annotations_fpath="lvis/lvis_v0.5_plus_dp_train.json",
+    ),
+    CocoDatasetInfo(
+        name="lvis_v05_val",
+        images_root="coco/val2017",
+        annotations_fpath="lvis/lvis_v0.5_plus_dp_val.json",
     ),
 ]
 
@@ -187,6 +219,13 @@ def _maybe_add_densepose(obj: Dict[str, Any], ann_dict: Dict[str, Any]):
             obj[key] = ann_dict[key]
 
 
+def _maybe_add_cse_data(obj: Dict[str, Any], ann_dict: Dict[str, Any]):
+    if "dp_vertex" in ann_dict:
+        obj["vertex_ids"] = ann_dict["dp_vertex"]
+    if "ref_model" in ann_dict:
+        obj["mesh_id"] = MeshCatalog.get_mesh_id(ann_dict["ref_model"])
+
+
 def _combine_images_with_annotations(
     dataset_name: str,
     image_root: str,
@@ -218,12 +257,38 @@ def _combine_images_with_annotations(
             _maybe_add_segm(obj, ann_dict)
             _maybe_add_keypoints(obj, ann_dict)
             _maybe_add_densepose(obj, ann_dict)
+            _maybe_add_cse_data(obj, ann_dict)
             objs.append(obj)
         record["annotations"] = objs
         dataset_dicts.append(record)
     if contains_video_frame_info:
         create_video_frame_mapping(dataset_name, dataset_dicts)
     return dataset_dicts
+
+
+def maybe_filter_and_map_categories_cocoapi(dataset_name, coco_api):
+    meta = MetadataCatalog.get(dataset_name)
+    category_id_map = meta.thing_dataset_id_to_contiguous_id
+    # map categories
+    cats = []
+    for cat in coco_api.dataset["categories"]:
+        cat_id = cat["id"]
+        if cat_id not in category_id_map:
+            continue
+        cat["id"] = category_id_map[cat_id]
+        cats.append(cat)
+    coco_api.dataset["categories"] = cats
+    # map annotation categories
+    anns = []
+    for ann in coco_api.dataset["annotations"]:
+        cat_id = ann["category_id"]
+        if cat_id not in category_id_map:
+            continue
+        ann["category_id"] = category_id_map[cat_id]
+        anns.append(ann)
+    coco_api.dataset["annotations"] = anns
+    # recreate index
+    coco_api.createIndex()
 
 
 def create_video_frame_mapping(dataset_name, dataset_dicts):
@@ -304,6 +369,7 @@ def register_dataset(dataset_data: CocoDatasetInfo, datasets_root: Optional[os.P
     MetadataCatalog.get(dataset_data.name).set(
         json_file=annotations_fpath,
         image_root=images_root,
+        evaluator_type="coco",
         **get_metadata(DENSEPOSE_METADATA_URL_PREFIX)
     )
 

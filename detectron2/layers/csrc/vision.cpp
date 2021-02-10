@@ -1,4 +1,4 @@
-// Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+// Copyright (c) Facebook, Inc. and its affiliates.
 
 #include <torch/extension.h>
 #include "ROIAlign/ROIAlign.h"
@@ -115,4 +115,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   pybind11::class_<COCOeval::ImageEvaluation>(m, "ImageEvaluation")
       .def(pybind11::init<>());
 }
+
+#ifdef TORCH_LIBRARY
+TORCH_LIBRARY(detectron2, m) {
+  m.def("nms_rotated", &nms_rotated);
+}
+#endif
 } // namespace detectron2

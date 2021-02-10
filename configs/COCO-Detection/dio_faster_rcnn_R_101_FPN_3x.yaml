@@ -1,0 +1,16 @@
+_BASE_: "../Base-RCNN-FPN.yaml"
+DATASETS:
+  TRAIN: ("coco_my_train",)
+  TEST: ("coco_my_val",)
+MODEL:
+  ROI_HEADS:
+    NUM_CLASSES: 2
+  WEIGHTS: "/home/hongwei/dio_object_detection/detectron2/weights/model_final_f6e8b1.pkl"
+  MASK_ON: False
+  RESNETS:
+    DEPTH: 101
+SOLVER:
+  IMS_PER_BATCH: 24
+  BASE_LR: 0.0008
+  STEPS: (20000, 30000)
+  MAX_ITER: 40000
