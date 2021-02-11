@@ -145,9 +145,9 @@ def main(args):
         )
     return trainer.train()
 
-CLASS_NAMES = ['person']
+CLASS_NAMES = ["object"]
 
-DATASET_ROOT = '/SSD/yonglu/video-hoi-data/dio-coco-style/coco'
+DATASET_ROOT = '/SSD2/yonglu/hake_ava/coco_style/ava-coco-style/coco'
 ANN_ROOT = os.path.join(DATASET_ROOT, 'annotations')
 
 TRAIN_PATH = os.path.join(DATASET_ROOT, 'images', 'train2017')
@@ -190,8 +190,8 @@ def checkout_dataset_annotation(name="coco_my_train"):
         cv2.waitKey(0)
         # if i == 200:
         #     break
-checkout_dataset_annotation()
-'''
+# checkout_dataset_annotation()
+
 def setup(args):
     """
     Create configs and perform basic setups.
@@ -219,4 +219,3 @@ if __name__ == "__main__":
         dist_url=args.dist_url,
         args=(args,),
     )
-'''
